@@ -1,0 +1,6 @@
+{
+  "name": "City Life",
+  "description": "Third-person open-world mobile city game in full-screen landscape mode with walking, running, jumping, fighting, car and motorcycle driving, traffic, police chases, missions, custom outfits, and uploaded photo billboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

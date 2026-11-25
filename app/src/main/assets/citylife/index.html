@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>City Life</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Full-screen 3D Third-Person WebGL Viewport -->
+    <canvas id="glCanvas"></canvas>
+
+    <!-- Right-side Touch Area for Third-Person Camera Rotation -->
+    <div id="cameraTouchPad" aria-label="Camera rotation area"></div>
+
+    <!-- Aiming Crosshair Reticle -->
+    <div id="aimReticle" class="hidden" aria-hidden="true">
+      <div class="reticle-ring"></div>
+      <div class="reticle-dot"></div>
+    </div>
+
+    <!-- Compact Landscape Top GTA HUD -->
+    <div id="hudTop">
+      <!-- Top Left: Player Card + Quick GTA Mode/Menu Strip -->
+      <div class="hud-left-col" id="hudLeftCol">
+        <div class="hud-panel player-card" id="playerCard">
+          <div class="avatar-ring" id="btnProfile" title="Character Menu">
+            <canvas id="avatarPreview" width="44" height="44"></canvas>
+          </div>
+          <div class="player-stats">
+            <div class="stat-top-row">
+              <span class="cash-text" id="hudCash">$3,200</span>
+              <div class="wanted-stars" id="hudWanted" aria-label="Wanted level">
+                <span class="star" data-idx="1">★</span>
+                <span class="star" data-idx="2">★</span>
+                <span class="star" data-idx="3">★</span>
+                <span class="star" data-idx="4">★</span>
+                <span class="star" data-idx="5">★</span>
+              </div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-track" title="Health">
+                <div class="bar-fill health-fill" id="hudHealth" style="width: 100%"></div>
+              </div>
+              <div class="bar-track stamina-track" title="Stamina">
+                <div class="bar-fill stamina-fill" id="hudStamina" style="width: 100%"></div>
+              </div>
+            </div>
+            <div class="district-sub" id="hudDistrict">METRO CITY · ON FOOT</div>
+          </div>
+        </div>
+
+        <!-- GTA Quick Navigation Dock (Story, Free, Missions, Garage, Character, Inventory) -->
+        <div class="hud-menu-dock editable-hud" data-ctrl-id="hudMenu" id="hudMenuDock">
+          <button class="hud-nav-pill pill-story" id="btnHudStory" title="Story Mode">STORY</button>
+          <button class="hud-nav-pill pill-free" id="btnHudFree" title="Free Mode">FREE</button>
+          <button class="hud-nav-pill" id="btnMissions" title="Missions">MISSIONS</button>
+          <button class="hud-nav-pill" id="btnHudGarage" title="Garage">GARAGE</button>
+          <button class="hud-nav-pill" id="btnStudio" title="Character">CHAR</button>
+          <button class="hud-nav-pill" id="btnHudInventory" title="Inventory">BAG</button>
+        </div>
+      </div>
+
+      <!-- Top Center: Active Mission, Direction/Distance/ETA GPS, Arrest Warning & Contextual Prompt -->
+      <div id="hudCenterBanners">
+        <div class="mission-banner hidden" id="missionBanner">
+          <div class="mission-dot"></div>
+          <div class="mission-info">
+            <div class="mission-title" id="missionTitle">MISSION</div>
+            <div class="mission-desc" id="missionDesc">Objective · 320m</div>
+          </div>
+          <div class="mission-timer" id="missionTimer">01:15</div>
+          <button class="mission-abort-btn" id="btnAbortMission" title="Abort Mission">✕</button>
+        </div>
+
+        <div class="gps-banner hidden" id="gpsBanner">
+          <span class="gps-badge" id="gpsDirArrow">↑</span>
+          <span class="gps-text" id="gpsText">Waypoint · 240m · 1 min</span>
+          <button class="gps-clear-x" id="btnClearGpsHud" title="Clear GPS">✕</button>
+        </div>
+
+        <div class="busted-banner hidden" id="bustedBanner">
+          <span class="busted-label">BUSTED WARNING</span>
+          <div class="busted-track"><div class="busted-fill" id="bustedFill" style="width: 0%"></div></div>
+        </div>
+
+        <div class="evade-pill hidden" id="evadePill">ESCAPING POLICE HEAT</div>
+
+        <button class="interact-pill hidden" id="btnInteract">
+          <span class="interact-badge" id="interactBadge">INTERACT</span>
+          <span class="interact-label" id="interactLabel">Open Apex Auto Garage</span>
+        </button>
+      </div>
+
+      <!-- Top Right: Map, GPS, Settings, Pause, Sound + Minimap -->
+      <div class="hud-right-col editable-hud" data-ctrl-id="minimap" id="hudRightCol">
+        <div class="quick-actions">
+          <div class="quick-mini-row">
+            <button class="icon-pill" id="btnMapQuick" aria-label="Interactive Map">MAP</button>
+            <button class="icon-pill icon-gps" id="btnGpsQuick" aria-label="GPS Navigation">GPS</button>
+          </div>
+          <div class="quick-mini-row">
+            <button class="icon-pill" id="btnHudSettings" aria-label="Settings">SET</button>
+            <button class="icon-pill icon-sq" id="btnPause" aria-label="Pause Menu">❚❚</button>
+            <button class="icon-pill icon-sq" id="btnSound" aria-label="Toggle Sound">🔊</button>
+          </div>
+        </div>
+        <div class="minimap-wrap" id="btnExpandMap" title="Tap for Dual City Map">
+          <canvas id="minimapCanvas" width="108" height="108"></canvas>
+          <div class="minimap-time" id="hudClock">15:20</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- Landscape Mobile Touchscreen Controls (Auto-switches On-Foot <-> Driving) -->
+    <div id="touchControls">
+      <!-- Left Control Zone: Virtual Joystick (Walking) / Left-Right Steer Pad (Driving) -->
+      <div class="left-control-zone editable-hud" data-ctrl-id="joystick" id="leftControlZone">
+        <div id="walkingLeftZone" class="joystick-zone-wrap">
+          <div class="joystick-zone" id="joystickZone">
+            <div class="joystick-base" id="joystickBase">
+              <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="drivingLeftZone" class="steer-pad hidden">
+          <button class="ctrl-btn ctrl-steer" id="btnSteerLeft" aria-label="Steer Left">
+            <span class="ctrl-icon">◀</span>
+            <span class="ctrl-text" data-i18n="left">LEFT</span>
+          </button>
+          <button class="ctrl-btn ctrl-steer" id="btnSteerRight" aria-label="Steer Right">
+            <span class="ctrl-icon">▶</span>
+            <span class="ctrl-text" data-i18n="right">RIGHT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Bottom Pills: Weapon Cycle + Speedo + Camera View -->
+      <div class="center-pills editable-hud" data-ctrl-id="centerPills" id="centerPills">
+        <div class="center-pill-row">
+          <button class="weapon-pill" id="btnWeaponCycle" title="Switch Weapon">
+            <span class="weapon-name" id="hudWeaponName">FISTS</span>
+            <span class="weapon-ammo" id="hudWeaponAmmo">MELEE</span>
+          </button>
+          <button class="cam-pill" id="btnCamViewQuick" title="Change Camera View">
+            <span>📷</span>
+            <span id="hudCamLabel">CHASE</span>
+          </button>
+        </div>
+        <div class="speedo-pill hidden" id="hudSpeedo">
+          <span class="speedo-val" id="speedVal">0</span>
+          <span class="speedo-unit">KM/H</span>
+          <span class="veh-hp-tag" id="hudVehHp">100%</span>
+        </div>
+      </div>
+
+      <!-- Right Action Cluster: On-Foot Grid OR Driving Cluster -->
+      <div class="action-cluster editable-hud" data-ctrl-id="actions" id="actionCluster">
+        <!-- On-Foot Player Controls -->
+        <div id="onFootActions" class="action-grid onfoot-grid">
+          <button class="ctrl-btn ctrl-accent hidden" id="btnEnterVehicle">
+            <span class="ctrl-icon">🚘</span>
+            <span class="ctrl-text" data-i18n="enter">ENTER</span>
+          </button>
+          <button class="ctrl-btn ctrl-interact" id="btnOnFootInteract" title="Interact">
+            <span class="ctrl-icon">✋</span>
+            <span class="ctrl-text" data-i18n="interact">USE</span>
+          </button>
+          <button class="ctrl-btn ctrl-secondary" id="btnWeaponQuick" title="Select Weapon">
+            <span class="ctrl-icon">🔫</span>
+            <span class="ctrl-text" data-i18n="weapon">WEAP</span>
+          </button>
+          <button class="ctrl-btn ctrl-secondary" id="btnCrouch">
+            <span class="ctrl-icon">🛡️</span>
+            <span class="ctrl-text" data-i18n="cover">CROUCH</span>
+          </button>
+          <button class="ctrl-btn ctrl-aim" id="btnAim">
+            <span class="ctrl-icon">🎯</span>
+            <span class="ctrl-text" data-i18n="aim">AIM</span>
+          </button>
+          <button class="ctrl-btn ctrl-secondary" id="btnSprint">
+            <span class="ctrl-icon">⚡</span>
+            <span class="ctrl-text" data-i18n="run">RUN</span>
+          </button>
+          <button class="ctrl-btn ctrl-primary" id="btnJump">
+            <span class="ctrl-icon">▲</span>
+            <span class="ctrl-text" data-i18n="jump">JUMP</span>
+          </button>
+          <button class="ctrl-btn ctrl-punch" id="btnPunch">
+            <span class="ctrl-icon">👊</span>
+            <span class="ctrl-text" data-i18n="punch">PUNCH</span>
+          </button>
+          <button class="ctrl-btn ctrl-fight" id="btnFight">
+            <span class="ctrl-icon" id="fightIcon">💥</span>
+            <span class="ctrl-text" id="fightText" data-i18n="attack">ATTACK</span>
+          </button>
+        </div>
+
+        <!-- Driving Controls (Auto-activated on Entering Any Vehicle) -->
+        <div id="drivingActions" class="action-grid driving-grid hidden">
+          <button class="ctrl-btn ctrl-exit" id="btnExitVehicle">
+            <span class="ctrl-icon">🚪</span>
+            <span class="ctrl-text" data-i18n="exit">EXIT</span>
+          </button>
+          <button class="ctrl-btn ctrl-aim" id="btnCamViewDrive">
+            <span class="ctrl-icon">📷</span>
+            <span class="ctrl-text" data-i18n="cam">CAM</span>
+          </button>
+          <button class="ctrl-btn ctrl-secondary" id="btnHorn">
+            <span class="ctrl-icon">📢</span>
+            <span class="ctrl-text" data-i18n="horn">HORN</span>
+          </button>
+          <button class="ctrl-btn ctrl-handbrake" id="btnHandbrake">
+            <span class="ctrl-icon">🅿</span>
+            <span class="ctrl-text" data-i18n="hb">DRIFT</span>
+          </button>
+          <button class="ctrl-btn ctrl-reverse" id="btnReverse">
+            <span class="ctrl-icon" id="revIcon">▼</span>
+            <span class="ctrl-text" id="revText" data-i18n="reverse">REV</span>
+          </button>
+          <button class="ctrl-btn ctrl-warn" id="btnBrake">
+            <span class="ctrl-icon" id="brakeIcon">■</span>
+            <span class="ctrl-text" data-i18n="brake">BRAKE</span>
+          </button>
+          <button class="ctrl-btn ctrl-primary ctrl-gas" id="btnGas">
+            <span class="ctrl-icon" id="gasIcon">▲</span>
+            <span class="ctrl-text" id="gasText" data-i18n="gas">GAS</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Control Editor Overlay (Drag, Resize, Walk/Drive Preview, Save & Reset) -->
+    <div id="controlEditorOverlay" class="editor-overlay hidden">
+      <div class="editor-toolbar">
+        <span class="editor-title">CUSTOM CONTROL EDITOR · DRAG TO MOVE · PINCH/SLIDE TO RESIZE</span>
+        <span class="editor-selected-tag" id="editorSelectedTag">Selected: Joystick</span>
+        <label class="editor-scale-wrap">
+          <span>Size</span>
+          <input type="range" id="editorScaleSlider" min="0.75" max="1.40" step="0.05" value="1.0" />
+          <span id="editorScaleVal">100%</span>
+        </label>
+        <button class="tool-btn" id="btnEditorPreviewMode">PREVIEW: WALKING</button>
+        <button class="tool-btn" id="btnEditorReset">RESET DEFAULT</button>
+        <button class="tool-btn" id="btnEditorCancel">CANCEL</button>
+        <button class="tool-btn enter-city-btn" id="btnEditorSave">SAVE LAYOUT</button>
+      </div>
+    </div>
+
+    <!-- Dual World Map & Real-World OpenStreetMap Navigation Modal -->
+    <div id="fullMapModal" class="modal-backdrop hidden">
+      <div class="modal-card map-modal-card">
+        <div class="modal-header">
+          <div class="dual-mode-tabs">
+            <button class="mode-tab active" id="btnMapModeOriginal">MODE A · GAME CITY</button>
+            <button class="mode-tab" id="btnMapModeReal">MODE B · REAL CITIES (OSM)</button>
+            <span class="city-avail-badge ok" id="cityPlayableBadge">3D PLAYABLE</span>
+            <button class="tool-btn enter-city-btn hidden" id="btnEnterSelectedCity">PLAY THIS 3D CITY</button>
+          </div>
+          <button class="modal-close" id="btnCloseMap">✕</button>
+        </div>
+
+        <div class="map-controls-bar">
+          <select id="citySelector" class="city-select" aria-label="Select City">
+            <option value="original">Metro City (Original)</option>
+            <option value="lahore">Lahore, Pakistan (Playable 3D)</option>
+            <option value="karachi">Karachi, Pakistan (Playable 3D)</option>
+            <option value="islamabad">Islamabad, Pakistan (Playable 3D)</option>
+            <option value="dubai">Dubai, UAE (Playable 3D)</option>
+            <option value="london">London, UK (OSM Map Only · 3D Unavailable)</option>
+            <option value="tokyo">Tokyo, Japan (OSM Map Only · 3D Unavailable)</option>
+          </select>
+
+          <div class="search-wrap">
+            <input type="text" id="mapSearchInput" class="poi-input search-input" placeholder="Search city, market, hospital, park..." />
+            <button class="tool-btn" id="btnMapSearch">SEARCH</button>
+            <div id="mapSearchResults" class="search-dropdown hidden"></div>
+          </div>
+
+          <div class="map-toolbar">
+            <button class="tool-btn active-nav" id="btnNavDrive">🚗 DRIVE</button>
+            <button class="tool-btn" id="btnNavWalk">🚶 WALK</button>
+            <button class="tool-btn" id="btnMapZoomIn" title="Zoom In">+</button>
+            <button class="tool-btn" id="btnMapZoomOut" title="Zoom Out">−</button>
+            <button class="tool-btn" id="btnMapCenter" title="Center">◎</button>
+            <button class="tool-btn" id="btnSaveFavorite" title="Save Pin as Favorite">★ FAV</button>
+            <button class="tool-btn" id="btnMapClearGps" title="Clear GPS">CLEAR</button>
+            <button class="tool-btn tool-editor" id="btnMapEditorToggle">✎ BUILD</button>
+          </div>
+        </div>
+
+        <div class="unavail-banner hidden" id="mapUnavailBanner">
+          ⚠ Real-world navigation map active (OpenStreetMap). Playable 3D city environment is currently unavailable for this location.
+        </div>
+
+        <div class="map-editor-bar hidden" id="mapEditorBar">
+          <div class="poi-cats" id="editorToolGroup">
+            <button class="poi-cat active" data-tool="poi">POI Marker</button>
+            <button class="poi-cat" data-tool="building">Building</button>
+            <button class="poi-cat" data-tool="road">Road (2 Taps)</button>
+            <button class="poi-cat" data-tool="mission_pt">Mission Pt</button>
+          </div>
+          <input type="text" id="poiNameInput" class="poi-input" placeholder="Name (e.g. Liberty Tower)" maxlength="24" />
+          <span class="editor-hint" id="editorHintText">Owner Builder: Tap map to place · Tap ★ to remove</span>
+        </div>
+
+        <div class="map-canvas-wrap">
+          <canvas id="fullMapCanvas" width="960" height="480"></canvas>
+        </div>
+
+        <div class="map-footer-bar">
+          <div class="fav-strip" id="mapFavoritesStrip">
+            <span class="fav-label">FAVORITES:</span>
+          </div>
+          <div class="map-route-readout" id="mapRouteReadout">Tap map to navigate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story & Mission Introduction Briefing Modal -->
+    <div id="missionIntroModal" class="modal-backdrop hidden">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-cat-tag" id="introCatTag">STORY MODE</div>
+            <div class="modal-title" id="introTitle">MISSION TITLE</div>
+          </div>
+          <button class="modal-close" id="btnCloseIntro">✕</button>
+        </div>
+        <p class="intro-body" id="introStory">Mission briefing text.</p>
+        <div class="dialogue-box hidden" id="introDialogueBox">
+          <div class="dialogue-speaker" id="introSpeaker">Contact</div>
+          <div class="dialogue-line" id="introDialogueLine">"Stay sharp."</div>
+        </div>
+        <div class="intro-meta">
+          <div class="meta-row"><span>OBJECTIVE</span><strong id="introObjective">Reach target</strong></div>
+          <div class="meta-row"><span>PROGRESS / STATUS</span><strong id="introProgress">Ready</strong></div>
+          <div class="meta-row"><span>TIME LIMIT</span><strong id="introTimer">90s</strong></div>
+          <div class="meta-row"><span>REWARD</span><strong id="introReward" class="reward-hi">$1,000 + 200 XP</strong></div>
+        </div>
+        <div class="modal-actions">
+          <button class="action-btn secondary-btn" id="btnCancelIntro">CANCEL</button>
+          <button class="action-btn primary-btn" id="btnConfirmStartMission">START MISSION</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mission Complete & Claim Reward Modal -->
+    <div id="missionCompleteModal" class="modal-backdrop hidden">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-cat-tag" style="color:#10b981;">MISSION PASSED</div>
+            <div class="modal-title" id="completeTitle">MISSION COMPLETED</div>
+          </div>
+          <button class="modal-close" id="btnCloseComplete">✕</button>
+        </div>
+        <p class="intro-body" id="completeDesc">Objective accomplished! Claim your payout below or anytime from the Missions menu.</p>
+        <div class="intro-meta">
+          <div class="meta-row"><span>PAYOUT READY</span><strong id="completeReward" class="reward-hi">$1,000 + 200 XP</strong></div>
+        </div>
+        <div class="modal-actions">
+          <button class="action-btn secondary-btn" id="btnClaimLater">CLAIM LATER</button>
+          <button class="action-btn save-btn" id="btnClaimRewardNow">CLAIM REWARD</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mission Failed & Retry Modal -->
+    <div id="missionFailModal" class="modal-backdrop hidden">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-cat-tag fail-tag">MISSION FAILED</div>
+            <div class="modal-title" id="failTitle">MISSION TITLE</div>
+          </div>
+          <button class="modal-close" id="btnCloseFail">✕</button>
+        </div>
+        <p class="intro-body" id="failReason">Reason for mission failure.</p>
+        <div class="modal-actions">
+          <button class="action-btn secondary-btn" id="btnDismissFail">FREE ROAM</button>
+          <button class="action-btn primary-btn" id="btnRetryMission">RETRY MISSION</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Pause Menu Modal -->
+    <div id="pauseModal" class="modal-backdrop hidden">
+      <div class="modal-card small-modal pause-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title" id="pauseModalTitle">GAME PAUSED</div>
+            <div class="modal-sub" id="pauseDistrictSub">Metro City Open World</div>
+          </div>
+          <button class="modal-close" id="btnResumePause">✕</button>
+        </div>
+        <div class="pause-grid">
+          <button class="pause-btn primary-btn" id="btnPauseResume">RESUME GAME</button>
+          <button class="pause-btn" id="btnPauseRestartMission">RESTART MISSION</button>
+          <button class="pause-btn" id="btnPauseMap">OPEN MAP</button>
+          <button class="pause-btn" id="btnPauseMissions">MISSION MENU</button>
+          <button class="pause-btn" id="btnPauseSettings">SETTINGS</button>
+          <button class="pause-btn" id="btnPauseControlEditor">CUSTOM CONTROLS</button>
+          <button class="pause-btn save-btn" id="btnPauseSave">SAVE GAME</button>
+          <button class="pause-btn" id="btnPauseMainMenu">MAIN MENU</button>
+          <button class="pause-btn owner-pause-btn" id="btnPauseOwner">OWNER PANEL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Menu Overlay -->
+    <div id="mainMenuModal" class="modal-backdrop hidden">
+      <div class="modal-card small-modal mainmenu-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-cat-tag">OPEN WORLD ACTION</div>
+            <div class="modal-title" style="font-size:18px;">CITY LIFE · OPEN WORLD</div>
+            <div class="modal-sub" id="mainMenuCitySub">Metro City · Ready</div>
+          </div>
+        </div>
+        <p class="intro-body">Explore Original Metro City or Real-World OSM cities, customize controls, drive 8 vehicle classes, and complete Story &amp; Free missions.</p>
+        <div class="pause-grid">
+          <button class="pause-btn primary-btn" id="btnMenuContinue">CONTINUE FREE ROAM</button>
+          <button class="pause-btn" id="btnMenuStory">STORY MODE</button>
+          <button class="pause-btn" id="btnMenuFree">FREE MISSIONS</button>
+          <button class="pause-btn" id="btnMenuMap">WORLD MAP</button>
+          <button class="pause-btn" id="btnMenuChar">CHARACTER &amp; GARAGE</button>
+          <button class="pause-btn" id="btnMenuSettings">SETTINGS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/webgl.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/realcities.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

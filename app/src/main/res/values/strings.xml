@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">City Life</string>
+    <string name="studio_title">City Studio</string>
+    <string name="tab_wardrobe">Outfits</string>
+    <string name="tab_billboards">Billboards</string>
+    <string name="tab_garage">Garage</string>
+    <string name="tab_combat">Arsenal</string>
+    <string name="tab_missions">Missions</string>
+    <string name="tab_maps">Cities &amp; Map</string>
+    <string name="tab_settings">Settings</string>
+    <string name="tab_world">World</string>
+    <string name="tab_owner">Owner</string>
+    <string name="action_upload_photo">Upload Photo</string>
+    <string name="action_reset_photo">Reset Default</string>
+    <string name="action_close">Back to City</string>
+    <string name="action_save_now">Save Progress Now</string>
+</resources>

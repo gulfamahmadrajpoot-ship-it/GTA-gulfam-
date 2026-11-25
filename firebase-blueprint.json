@@ -1,0 +1,206 @@
+{
+  "entities": {
+    "AdminClaim": {
+      "title": "AdminClaim",
+      "description": "Authorized game owner UID record verified for Owner Control Panel access.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["owner"],
+          "description": "Fixed owner role identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["uid", "role", "createdAt"]
+    },
+    "OwnerMeta": {
+      "title": "OwnerMeta",
+      "description": "Secondary salted SHA-256 owner passcode metadata (never plaintext secrets).",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "UID of the owner who claimed or rotated the secondary passcode."
+        },
+        "claimed": {
+          "type": "boolean",
+          "description": "Whether the secondary owner passcode is active."
+        },
+        "salt": {
+          "type": "string",
+          "description": "Base64 16-byte random salt."
+        },
+        "passHash": {
+          "type": "string",
+          "description": "Base64 SHA-256 salted passcode digest."
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID of the admin performing the update."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["ownerUid", "claimed", "salt", "passHash", "updatedBy", "updatedAt"]
+    },
+    "GameConfigDoc": {
+      "title": "GameConfigDoc",
+      "description": "Draft or live published game configuration controlled by the Owner Dashboard.",
+      "type": "object",
+      "properties": {
+        "configJson": {
+          "type": "string",
+          "description": "Serialized OwnerConfigDto JSON payload governing maps, missions, police, vehicles, characters, ads, and game settings."
+        },
+        "version": {
+          "type": "integer",
+          "description": "Monotonic configuration version number."
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID of the owner publishing or saving draft changes."
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when published via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest modification via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["configJson", "version", "updatedBy", "updatedAt"]
+    },
+    "ConfigBackup": {
+      "title": "ConfigBackup",
+      "description": "Versioned snapshot of published configuration for rollback and restore.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable snapshot label."
+        },
+        "configJson": {
+          "type": "string",
+          "description": "Serialized OwnerConfigDto JSON snapshot."
+        },
+        "version": {
+          "type": "integer",
+          "description": "Version number captured in this backup."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "UID of the owner creating the backup."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["label", "configJson", "version", "createdBy", "createdAt"]
+    },
+    "PlayerAccount": {
+      "title": "PlayerAccount",
+      "description": "Registered non-PII player gameplay progress and moderation status.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the player."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public in-game display name (no PII)."
+        },
+        "cash": {
+          "type": "integer",
+          "description": "Current in-game cash balance."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Current experience points."
+        },
+        "level": {
+          "type": "integer",
+          "description": "Computed player rank level."
+        },
+        "selectedCityId": {
+          "type": "string",
+          "description": "Currently active playable city ID."
+        },
+        "completedMissionsCount": {
+          "type": "integer",
+          "description": "Count of completed missions."
+        },
+        "banned": {
+          "type": "boolean",
+          "description": "Owner-controlled account suspension flag."
+        },
+        "resetRequested": {
+          "type": "boolean",
+          "description": "Owner-triggered progress reset flag consumed on player sync."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "cash",
+        "xp",
+        "level",
+        "selectedCityId",
+        "completedMissionsCount",
+        "banned",
+        "resetRequested",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminClaim" },
+      "description": "Verified game owner accounts permitted to administer maps, missions, police, vehicles, characters, ads, settings, and players."
+    },
+    "/ownerConfig/meta": {
+      "schema": { "$ref": "#/entities/OwnerMeta" },
+      "description": "Owner-only salted SHA-256 passcode verification metadata."
+    },
+    "/gameConfig/{docId}": {
+      "schema": { "$ref": "#/entities/GameConfigDoc" },
+      "description": "Published ('published') and draft ('draft') Owner Control Panel game configuration documents."
+    },
+    "/gameConfig/published/backups/{backupId}": {
+      "schema": { "$ref": "#/entities/ConfigBackup" },
+      "description": "Historical published configuration snapshots for owner rollback and restore."
+    },
+    "/players/{playerId}": {
+      "schema": { "$ref": "#/entities/PlayerAccount" },
+      "description": "Player gameplay progress records managed by players (own doc) and moderated by the owner."
+    }
+  }
+}
